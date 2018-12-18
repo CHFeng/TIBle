@@ -156,6 +156,8 @@
 static uint8 simpleBLEPeripheral_TaskID;   // Task ID for internal task/event processing
 
 static gaprole_States_t gapProfileState = GAPROLE_INIT;
+// RFID tag serial number
+static uint8 lastRFIDTag[5] = {0, 0, 0, 0, 0};
 
 // GAP - SCAN RSP data (max size = 31 bytes)
 static uint8 scanRspData[] =
@@ -364,7 +366,7 @@ void SimpleBLEPeripheral_Init( uint8 task_id )
     uint8 charValue2 = 2;
     uint8 charValue3 = 3;
     uint8 charValue4 = 4;
-    uint8 charValue5[SIMPLEPROFILE_CHAR5_LEN] = { 1, 2, 3, 4, 5 };
+    uint8 charValue5[SIMPLEPROFILE_CHAR5_LEN] = { 0, 0, 0, 0, 0 };
     SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR1, sizeof ( uint8 ), &charValue1 );
     SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR2, sizeof ( uint8 ), &charValue2 );
     SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR3, sizeof ( uint8 ), &charValue3 );
@@ -487,8 +489,11 @@ uint16 SimpleBLEPeripheral_ProcessEvent( uint8 task_id, uint16 events )
   if ( events & SBP_PERIODIC_EVT )
   {
     // Restart timer
-    if ( SBP_PERIODIC_EVT_PERIOD )
-    {
+    // if ( SBP_PERIODIC_EVT_PERIOD )
+    // if ble state is on connect, speed up SBP_PERIODIC_EVT to 500ms
+    if (gapProfileState == GAPROLE_CONNECTED) {
+      osal_start_timerEx( simpleBLEPeripheral_TaskID, SBP_PERIODIC_EVT, SBP_PERIODIC_EVT_PERIOD / 10 );
+    } else {
       osal_start_timerEx( simpleBLEPeripheral_TaskID, SBP_PERIODIC_EVT, SBP_PERIODIC_EVT_PERIOD );
     }
 
@@ -718,12 +723,16 @@ static void peripheralStateNotificationCB( gaprole_States_t newState )
  */
 static void performPeriodicTask( void )
 {
-  uint8 valueToCopy;
   uint8 stat = FALSE;
   static uint8 noCardCount = 0;
-  static uint8 lastRFIDTag[5] = {0, 0, 0, 0, 0};
+  static uint8 firstConnDelay = 0;
   uint8 curRFIDTag[5] = {0, 0, 0, 0, 0};
   uint8 i;
+
+  if (gapProfileState != GAPROLE_CONNECTED) {
+    firstConnDelay = 0;
+    return;
+  }
 
   MFRC522_CheckCard(curRFIDTag);
   if (curRFIDTag[4] != 0) {
@@ -751,19 +760,10 @@ static void performPeriodicTask( void )
     uart_printf("TAG CHANGE:%x\n", lastRFIDTag[4]);
     SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR4, sizeof(uint8), &lastRFIDTag[4]);
   }
-  
-  // Call to retrieve the value of the third characteristic in the profile
-  // stat = SimpleProfile_GetParameter( SIMPLEPROFILE_CHAR3, &valueToCopy);
-
-  if( stat == SUCCESS )
-  {
-    /*
-     * Call to set that value of the fourth characteristic in the profile. Note
-     * that if notifications of the fourth characteristic have been enabled by
-     * a GATT client device, then a notification will be sent every time this
-     * function is called.
-     */
-    // SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR4, sizeof(uint8), &valueToCopy);
+  // 當裝置第一次連接上APP,持續發送notification 4次
+  if (firstConnDelay < 4) {
+    SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR4, sizeof(uint8), &lastRFIDTag[4]);
+    firstConnDelay++;
   }
 }
 
