@@ -66,7 +66,7 @@
 }
 /* clear the received and transmit byte status, write tx data to buffer, wait till transmit done */
 #define SPI_TX(x)                   { U1CSR &= ~(BV(1)); U1DBUF = x; while( !(U1CSR & BV(1)) ); }
-#define SPI_RX(x)					{ x = U1DBUF; }
+#define SPI_RX(x)                   { x = U1DBUF; }
 /* Control macros */
 #define SPI_DO_WRITE()        HAL_IO_SET(HAL_SPI_MODE_PORT,  HAL_SPI_MODE_PIN,  1);
 #define SPI_DO_CONTROL()      HAL_IO_SET(HAL_SPI_MODE_PORT,  HAL_SPI_MODE_PIN,  0);
@@ -74,8 +74,8 @@
 #define MAX_LEN 16
 //MF522 Command word
 #define PCD_IDLE              0x00               // NO action; Cancel the current command
-#define PCD_MEM				  0x01				 // stores 25 bytes into the internal buffer
-#define PCD_GETRAND			  0x02				 // get random number
+#define PCD_MEM               0x01               // stores 25 bytes into the internal buffer
+#define PCD_GETRAND           0x02               // get random number
 #define PCD_CALCCRC           0x03               // CRC Calculate
 #define PCD_TRANSMIT          0x04               // Transmit data
 #define PCD_RECEIVE           0x08               // Receive Data
@@ -204,11 +204,9 @@ static uint8 mfrc522_TaskID;   // Task ID for internal task/event processing
  * LOCAL FUNCTIONS
  */
 static void MFRC522_Reset(void);
-static void MFRC522_CheckCard(void);
 static void AntennaOn(void);
 static bool MFRC522_SelfTest(void);
 static void mfrc_hw_init(void);
-static void uart_printf(const char *fmt, ...);
 static void write_mfrc522(char addr, char val);
 static char read_mfrc522(char addr);
 static void waitUs(uint16 microSecs);
@@ -236,30 +234,30 @@ static void waitUs(uint16 microSecs);
  */
 void MFRC522_Init( uint8 task_id )
 {
-  	mfrc522_TaskID = task_id;
-	// config uart
-	halUARTCfg_t halUARTCfg;
-	halUARTCfg.configured =TRUE;
-	halUARTCfg.baudRate =HAL_UART_BR_115200;
-	halUARTCfg.flowControl =HAL_UART_FLOW_OFF;
-	HalUARTOpen(HAL_UART_PORT_0, &halUARTCfg);
-	HalUARTWrite(HAL_UART_PORT_0, "HELLO CC2540!\r\n", 15);
+    mfrc522_TaskID = task_id;
+    // config uart
+    halUARTCfg_t halUARTCfg;
+    halUARTCfg.configured =TRUE;
+    halUARTCfg.baudRate =HAL_UART_BR_115200;
+    halUARTCfg.flowControl =HAL_UART_FLOW_OFF;
+    HalUARTOpen(HAL_UART_PORT_0, &halUARTCfg);
+    HalUARTWrite(HAL_UART_PORT_0, "HELLO CC2540!\r\n", 15);
 
-	// Setup a delayed profile startup
-	osal_set_event( mfrc522_TaskID, MFRC522_EVENT );
+    // Setup a delayed profile startup
+    osal_set_event( mfrc522_TaskID, MFRC522_EVENT );
 
-	// setup does initial pin config, performs a soft reset on the card, and sets
-	// some sane defaults for the SunFounder Mifare RC522 card
-	mfrc_hw_init();
+    // setup does initial pin config, performs a soft reset on the card, and sets
+    // some sane defaults for the SunFounder Mifare RC522 card
+    mfrc_hw_init();
 
-	// now do what you want
+    // now do what you want
 
-	// if you just wanted to do a simple read or write to a register on the chip,
-	// use one of the below commands...
-	/*
-	* char readd = read_mfrc522(TxControlReg);
-	* write_mfrc522(TxControlReg, 0x03);
-	*/
+    // if you just wanted to do a simple read or write to a register on the chip,
+    // use one of the below commands...
+    /*
+    * char readd = read_mfrc522(TxControlReg);
+    * write_mfrc522(TxControlReg, 0x03);
+    */
 
 }
 
@@ -278,98 +276,98 @@ void MFRC522_Init( uint8 task_id )
  */
 uint16 MFRC522_ProcessEvent( uint8 task_id, uint16 events )
 {
-	VOID task_id; // OSAL required parameter that isn't used in this function
+    VOID task_id; // OSAL required parameter that isn't used in this function
 
-	if ( events & MFRC522_EVENT )
-	{
-		MFRC522_CheckCard();
+    if ( events & MFRC522_EVENT )
+    {
+        // MFRC522_CheckCard();
 
-		osal_start_timerEx( mfrc522_TaskID, MFRC522_EVENT, 2000 );
+        // osal_start_timerEx( mfrc522_TaskID, MFRC522_EVENT, 2000 );
 
-		// return unprocessed events
-		return (events ^ MFRC522_EVENT);
-	}
+        // return unprocessed events
+        return (events ^ MFRC522_EVENT);
+    }
 
-	// Discard unknown events
-	return 0;
+    // Discard unknown events
+    return 0;
 }
 /*********************************************************************
  * PRIVATE FUNCTIONS
  */
 
-static void uart_printf(const char *fmt, ...)
+void uart_printf(const char *fmt, ...)
 {
-	
-	char endChar = '\r';
-	va_list ap;
-	char string[256];
-	char* pt = string;
+    
+    char endChar = '\r';
+    va_list ap;
+    char string[256];
+    char* pt = string;
 
-	osal_memset(string, 0, sizeof(string));
+    osal_memset(string, 0, sizeof(string));
 
-	va_start(ap, fmt);
-	vsprintf(string, fmt, ap);
+    va_start(ap, fmt);
+    vsprintf(string, fmt, ap);
 
-	while (*pt) {
-    	if(*pt == '\n')
-    		HalUARTWrite(HAL_UART_PORT_0, (uint8*)&endChar, 1);
-    	HalUARTWrite(HAL_UART_PORT_0, (uint8*)pt++, 1);
-	}
+    while (*pt) {
+        if(*pt == '\n')
+            HalUARTWrite(HAL_UART_PORT_0, (uint8*)&endChar, 1);
+        HalUARTWrite(HAL_UART_PORT_0, (uint8*)pt++, 1);
+    }
 
-	va_end(ap);
+    va_end(ap);
 }
 
 static void mfrc_hw_init(void)
 {
-	volatile char result = 0;
-	/* config CC2540 SPI settings*/
-	HAL_CONFIG_IO_OUTPUT(HAL_SPI_CS_PORT, HAL_SPI_CS_PIN, 1);
+    volatile char result = 0;
+    /* config CC2540 SPI settings*/
+    HAL_CONFIG_IO_OUTPUT(HAL_SPI_CS_PORT, HAL_SPI_CS_PIN, 1);
 
-	/* UART/SPI Peripheral configuration */
-	uint8 baud_exponent;
-	uint8 baud_mantissa;
+    /* UART/SPI Peripheral configuration */
+    uint8 baud_exponent;
+    uint8 baud_mantissa;
 
-	/* Set SPI on UART 1 alternative 2 */
-	PERCFG |= 0x02;
+    /* Set SPI on UART 1 alternative 2 */
+    PERCFG |= 0x02;
 
-	/* Configure clk, master out and master in lines */
-	HAL_CONFIG_IO_PERIPHERAL(HAL_SPI_CLK_PORT,  HAL_SPI_CLK_PIN);
-	HAL_CONFIG_IO_PERIPHERAL(HAL_SPI_MOSI_PORT, HAL_SPI_MOSI_PIN);
-	HAL_CONFIG_IO_PERIPHERAL(HAL_SPI_MISO_PORT, HAL_SPI_MISO_PIN);
+    /* Configure clk, master out and master in lines */
+    HAL_CONFIG_IO_PERIPHERAL(HAL_SPI_CLK_PORT,  HAL_SPI_CLK_PIN);
+    HAL_CONFIG_IO_PERIPHERAL(HAL_SPI_MOSI_PORT, HAL_SPI_MOSI_PIN);
+    HAL_CONFIG_IO_PERIPHERAL(HAL_SPI_MISO_PORT, HAL_SPI_MISO_PIN);
 
 
-	/* Set SPI speed to 1 MHz (the values assume system clk of 32MHz)
-	* Confirm on board that this results in 1MHz spi clk.
-	*/
-	baud_exponent = 15;
-	baud_mantissa =  0;
+    /* Set SPI speed to 1 MHz (the values assume system clk of 32MHz)
+    * Confirm on board that this results in 1MHz spi clk.
+    */
+    baud_exponent = 15;
+    baud_mantissa =  0;
 
-	/* Configure SPI */
-	U1UCR  = 0x80;      /* Flush and goto IDLE state. 8-N-1. */
-	U1CSR  = 0x00;      /* SPI mode, master. */
-	U1GCR  = HAL_SPI_TRANSFER_MSB_FIRST | HAL_SPI_CLOCK_PHA_0 | HAL_SPI_CLOCK_POL_LO | baud_exponent;
-	U1BAUD = baud_mantissa;
+    /* Configure SPI */
+    U1UCR  = 0x80;      /* Flush and goto IDLE state. 8-N-1. */
+    U1CSR  = 0x00;      /* SPI mode, master. */
+    U1GCR  = HAL_SPI_TRANSFER_MSB_FIRST | HAL_SPI_CLOCK_PHA_0 | HAL_SPI_CLOCK_POL_LO | baud_exponent;
+    U1BAUD = baud_mantissa;
 
-	/* config mfrc522 settings */
-	MFRC522_SelfTest();
-	
-	MFRC522_Reset();
-	
-	// Timer: TPrescaler*TreloadVal/6.78MHz = 24ms
-	write_mfrc522(TModeReg, 0x8D);      // Tauto=1; f(Timer) = 6.78MHz/TPreScaler
-	write_mfrc522(TPrescalerReg, 0xA9); // TModeReg[3..0] + TPrescalerReg
-	write_mfrc522(TReloadRegH, 0x03);
-	write_mfrc522(TReloadRegL, 0xE8);
-	write_mfrc522(TxAutoReg, 0x40);     // force 100% ASK modulation
-	write_mfrc522(ModeReg, 0x3D);       // CRC Initial value 0x6363
+    /* config mfrc522 settings */
+    MFRC522_SelfTest();
+    
+    MFRC522_Reset();
+    
+    // Timer: TPrescaler*TreloadVal/6.78MHz = 24ms
+    write_mfrc522(TModeReg, 0x8D);      // Tauto=1; f(Timer) = 6.78MHz/TPreScaler
+    write_mfrc522(TPrescalerReg, 0xA9); // TModeReg[3..0] + TPrescalerReg
+    write_mfrc522(TReloadRegH, 0x03);
+    write_mfrc522(TReloadRegL, 0xE8);
+    write_mfrc522(TxAutoReg, 0x40);     // force 100% ASK modulation
+    write_mfrc522(ModeReg, 0x3D);       // CRC Initial value 0x6363
 
-	do {
-		result = read_mfrc522(VersionReg);
-		uart_printf("VER RES:%x\n", result);
-	} while (result != 0x92);
+    do {
+        result = read_mfrc522(VersionReg);
+        uart_printf("VER RES:%x\n", result);
+    } while (result != 0x92);
 
-	// turn antenna on
-	AntennaOn();
+    // turn antenna on
+    AntennaOn();
 }
 
 /*
@@ -379,23 +377,23 @@ static void mfrc_hw_init(void)
  * Return value: None
  */
 void write_mfrc522(char addr, char val)
-{	
-	// set the select line so we can start transferring
-	SPI_BEGIN();
-	// even though we are calling transfer frame once, we are really sending
-	// two 8-bit frames smooshed together-- sending two 8 bit frames back to back
-	// results in a spike in the select line which will jack with transactions
-	// - top 8 bits are the address. Per the spec, we shift the address left
-	//   1 bit, clear the LSb, and clear the MSb to indicate a write
-	// - bottom 8 bits are the data bits being sent for that address, we send
-	//   them as is
-	SPI_TX((addr << 1) & 0x7E);
-	SPI_TX(val);
-	
-	// clear the select line-- we are done here
-	SPI_END();
+{   
+    // set the select line so we can start transferring
+    SPI_BEGIN();
+    // even though we are calling transfer frame once, we are really sending
+    // two 8-bit frames smooshed together-- sending two 8 bit frames back to back
+    // results in a spike in the select line which will jack with transactions
+    // - top 8 bits are the address. Per the spec, we shift the address left
+    //   1 bit, clear the LSb, and clear the MSb to indicate a write
+    // - bottom 8 bits are the data bits being sent for that address, we send
+    //   them as is
+    SPI_TX((addr << 1) & 0x7E);
+    SPI_TX(val);
+    
+    // clear the select line-- we are done here
+    SPI_END();
 
-	// waitUs(1);
+    // waitUs(1);
 }
 
 /*
@@ -406,26 +404,26 @@ void write_mfrc522(char addr, char val)
  */
 char read_mfrc522(char addr)
 {
-	uint8 result = 0x00;
+    uint8 result = 0x00;
 
-	// set the select line so we can start transferring
-	SPI_BEGIN();
+    // set the select line so we can start transferring
+    SPI_BEGIN();
 
-	// even though we are calling transfer frame once, we are really sending
-	// two 8-bit frames smooshed together-- sending two 8 bit frames back to back
-	// results in a spike in the select line which will jack with transactions
-	// - top 8 bits are the address. Per the spec, we shift the address left
-	//   1 bit, clear the LSb, and set the MSb to indicate a read
-	// - bottom 8 bits are all 0s on a read per 8.1.2.1 Table 6
-	SPI_TX(((addr << 1) & 0x7E) | 0x80);
-	SPI_TX(0x00);
-	SPI_RX(result);
-	// clear the select line-- we are done here
-	SPI_END();
+    // even though we are calling transfer frame once, we are really sending
+    // two 8-bit frames smooshed together-- sending two 8 bit frames back to back
+    // results in a spike in the select line which will jack with transactions
+    // - top 8 bits are the address. Per the spec, we shift the address left
+    //   1 bit, clear the LSb, and set the MSb to indicate a read
+    // - bottom 8 bits are all 0s on a read per 8.1.2.1 Table 6
+    SPI_TX(((addr << 1) & 0x7E) | 0x80);
+    SPI_TX(0x00);
+    SPI_RX(result);
+    // clear the select line-- we are done here
+    SPI_END();
 
-	//waitUs(15000); // 15 ms
-	
-	return result;
+    //waitUs(15000); // 15 ms
+    
+    return result;
 }
 
 void waitUs(uint16 microSecs)
@@ -503,24 +501,24 @@ void AntennaOff(void)
  */
 void MFRC522_Reset(void)
 {
-	uint8 result;
-	write_mfrc522(CommandReg, PCD_RESETPHASE);
-	// Wait for the PowerDown bit in CommandReg to be cleared (max 3x50ms)
-	do {
-		result = read_mfrc522(CommandReg);
-	} while (result & BV (4));
+    uint8 result;
+    write_mfrc522(CommandReg, PCD_RESETPHASE);
+    // Wait for the PowerDown bit in CommandReg to be cleared (max 3x50ms)
+    do {
+        result = read_mfrc522(CommandReg);
+    } while (result & BV (4));
 
-	uart_printf("FINISH RESET\n");
+    uart_printf("FINISH RESET\n");
 }
 
 /*
  * Function Name: MFRC522_ToCard
  * Description: RC522 and ISO14443 card communication
  * Input Parameters: command - MF522 command word,
- *			 sendData--RC522 sent to the card by the data
- *			 sendLen--Length of data sent	 
- *			 backData--Received the card returns data,
- *			 backLen--Return data bit length
+ *           sendData--RC522 sent to the card by the data
+ *           sendLen--Length of data sent    
+ *           backData--Received the card returns data,
+ *           backLen--Return data bit length
  * Return value: the successful return MI_OK
  */
 char MFRC522_ToCard(char command, char *sendData, char sendLen, char *backData, uint32 *backLen)
@@ -570,7 +568,7 @@ char MFRC522_ToCard(char command, char *sendData, char sendLen, char *backData, 
   }
 
   // Waiting to receive data to complete
-  i = 2000;	// i according to the clock frequency adjustment, the operator M1 card maximum waiting time 25ms
+  i = 100;  // i according to the clock frequency adjustment, the operator M1 card maximum waiting time 25ms
   do
   {
     // CommIrqReg[7..0]
@@ -627,7 +625,7 @@ char MFRC522_ToCard(char command, char *sendData, char sendLen, char *backData, 
     }
   }
   else {
-    uart_printf("TIMEOUT\n");
+    // uart_printf("TIMEOUT\n");
   }
 
   return status;
@@ -676,9 +674,9 @@ char MFRC522_Anticoll(char *serNum)
   uint32 unLen;
 
 
-  //ClearBitMask(Status2Reg, 0x08);		//TempSensclear
-  //ClearBitMask(CollReg,0x80);			//ValuesAfterColl
-  write_mfrc522(BitFramingReg, 0x00);		//TxLastBists = BitFramingReg[2..0]
+  //ClearBitMask(Status2Reg, 0x08);     //TempSensclear
+  //ClearBitMask(CollReg,0x80);         //ValuesAfterColl
+  write_mfrc522(BitFramingReg, 0x00);       //TxLastBists = BitFramingReg[2..0]
 
   serNum[0] = PICC_ANTICOLL;
   serNum[1] = 0x20;
@@ -695,10 +693,9 @@ char MFRC522_Anticoll(char *serNum)
     {   
       status = MI_ERR;    
     }
-    uart_printf("UNLEN:%d\n", unLen);
   }
 
-  //SetBitMask(CollReg, 0x80);		//ValuesAfterColl=1
+  //SetBitMask(CollReg, 0x80);      //ValuesAfterColl=1
 
   return status;
 } 
@@ -715,10 +712,10 @@ void CalulateCRC(char *pIndata, char len, char *pOutData)
   char i, n;
 
   write_mfrc522(CommandReg, PCD_IDLE);
-  ClearBitMask(DivIrqReg, 0x04);			//CRCIrq = 0
-  SetBitMask(FIFOLevelReg, 0x80);			//Clear the FIFO pointer
+  ClearBitMask(DivIrqReg, 0x04);            //CRCIrq = 0
+  SetBitMask(FIFOLevelReg, 0x80);           //Clear the FIFO pointer
 
-  //Writing data to the FIFO	
+  //Writing data to the FIFO    
   for (i=0; i<len; i++)
   {   
     write_mfrc522(FIFODataReg, *(pIndata+i));   
@@ -732,7 +729,7 @@ void CalulateCRC(char *pIndata, char len, char *pOutData)
     n = read_mfrc522(DivIrqReg);
     i--;
   }
-  while ((i!=0) && !(n&0x04));			//CRCIrq = 1
+  while ((i!=0) && !(n&0x04));          //CRCIrq = 1
 
   //Read CRC calculation result
   pOutData[0] = read_mfrc522(CRCResultRegL);
@@ -754,7 +751,7 @@ char MFRC522_SelectTag(char *serNum)
   uint32 recvBits;
   char buffer[9]; 
 
-  //ClearBitMask(Status2Reg, 0x08);			//MFCrypto1On=0
+  //ClearBitMask(Status2Reg, 0x08);         //MFCrypto1On=0
 
   buffer[0] = PICC_SElECTTAG;
   buffer[1] = 0x70;
@@ -762,7 +759,7 @@ char MFRC522_SelectTag(char *serNum)
   {
     buffer[i+2] = *(serNum+i);
   }
-  CalulateCRC(buffer, 7, &buffer[7]);		//??
+  CalulateCRC(buffer, 7, &buffer[7]);       //??
   status = MFRC522_ToCard(PCD_TRANSCEIVE, buffer, 9, buffer, &recvBits);
 
   if ((status == MI_OK) && (recvBits == 0x18))
@@ -868,7 +865,7 @@ char MFRC522_Write(char blockAddr, char *writeData)
 
   if (status == MI_OK)
   {
-    for (i=0; i<16; i++)		//Data to the FIFO write 16Byte
+    for (i=0; i<16; i++)        //Data to the FIFO write 16Byte
     {    
       buff[i] = *(writeData+i);   
     }
@@ -904,121 +901,130 @@ void MFRC522_Halt(void)
   status = MFRC522_ToCard(PCD_TRANSCEIVE, buff, 4, buff,&unLen);
 }
 
-void MFRC522_CheckCard(void)
+void MFRC522_CheckCard(unsigned char* serial)
 {
-	char status, checksum1, str[MAX_LEN];
+    char status, checksum1, str[MAX_LEN];
+    uint8 i;
 
-	// Find cards
-	status = MFRC522_Request(PICC_REQIDL, str);
-	if (status == MI_OK) {
-		uart_printf("CARD:%x\t%x\n", str[0], str[1]);
+    // Find cards
+    status = MFRC522_Request(PICC_REQIDL, str);
+    if (status == MI_OK) {
+        // uart_printf("CARD:%x\t%x\n", str[0], str[1]);
 
-		// Anti-collision, return card serial number == 4 bytes
-		status = MFRC522_Anticoll(str);
-		if (status == MI_OK) {
-			checksum1 = str[0] ^ str[1] ^ str[2] ^ str[3];
-			uart_printf("SN: %x %x %x %x %x\t CHECKSUM: %x\n", str[0], str[1], str[2], str[3], str[4], checksum1);
-		}
-	}
+        // Anti-collision, return card serial number == 4 bytes
+        status = MFRC522_Anticoll(str);
+        if (status == MI_OK) {
+            checksum1 = str[0] ^ str[1] ^ str[2] ^ str[3];
+            // uart_printf("SN: %x %x %x %x %x\t CHECKSUM: %x\n", str[0], str[1], str[2], str[3], str[4], checksum1);
+            for (i = 0; i < 5; i++) {
+                serial[i] = str[i];
+            }
+        }
+    } else {
+        // can't find card
+        for (i = 0; i < 5; i++) {
+            serial[i] = 0;
+        }
+    }
 }
 
 bool MFRC522_SelfTest(void) 
 {
-	uint8 i, n, result[64], version, res = 0;
-	// Version 2.0 (0x92)
-	// NXP Semiconductors; Rev. 3.8 - 17 September 2014; 16.1.1 self-test
-	uint8 MFRC522_firmware_referenceV2_0[] = {
-		0x00, 0xEB, 0x66, 0xBA, 0x57, 0xBF, 0x23, 0x95,
-		0xD0, 0xE3, 0x0D, 0x3D, 0x27, 0x89, 0x5C, 0xDE,
-		0x9D, 0x3B, 0xA7, 0x00, 0x21, 0x5B, 0x89, 0x82,
-		0x51, 0x3A, 0xEB, 0x02, 0x0C, 0xA5, 0x00, 0x49,
-		0x7C, 0x84, 0x4D, 0xB3, 0xCC, 0xD2, 0x1B, 0x81,
-		0x5D, 0x48, 0x76, 0xD5, 0x71, 0x61, 0x21, 0xA9,
-		0x86, 0x96, 0x83, 0x38, 0xCF, 0x9D, 0x5B, 0x6D,
-		0xDC, 0x15, 0xBA, 0x3E, 0x7D, 0x95, 0x3B, 0x2F
-	};
+    uint8 i, n, result[64], version, res = 0;
+    // Version 2.0 (0x92)
+    // NXP Semiconductors; Rev. 3.8 - 17 September 2014; 16.1.1 self-test
+    uint8 MFRC522_firmware_referenceV2_0[] = {
+        0x00, 0xEB, 0x66, 0xBA, 0x57, 0xBF, 0x23, 0x95,
+        0xD0, 0xE3, 0x0D, 0x3D, 0x27, 0x89, 0x5C, 0xDE,
+        0x9D, 0x3B, 0xA7, 0x00, 0x21, 0x5B, 0x89, 0x82,
+        0x51, 0x3A, 0xEB, 0x02, 0x0C, 0xA5, 0x00, 0x49,
+        0x7C, 0x84, 0x4D, 0xB3, 0xCC, 0xD2, 0x1B, 0x81,
+        0x5D, 0x48, 0x76, 0xD5, 0x71, 0x61, 0x21, 0xA9,
+        0x86, 0x96, 0x83, 0x38, 0xCF, 0x9D, 0x5B, 0x6D,
+        0xDC, 0x15, 0xBA, 0x3E, 0x7D, 0x95, 0x3B, 0x2F
+    };
 
-	write_mfrc522(CommandReg, PCD_GETRAND);
-	do {
-		res = read_mfrc522(CommandReg);
-		uart_printf("CMD:%x\n", res);
-	} while (res & PCD_GETRAND);
-	
-	for (i = 0; i < 10; i++) {
-		result[i] = read_mfrc522(FIFODataReg);
-		uart_printf("%x ", result[i]);
-	}
-	uart_printf("\n");
-	
-	// This follows directly the steps outlined in 16.1.1
-	// 1. Perform a soft reset.
-	MFRC522_Reset();
-	
-	// 2. Clear the internal buffer by writing 25 bytes of 00h
-	write_mfrc522(FIFOLevelReg, 0x80);		// flush the FIFO buffer
-	res = read_mfrc522(FIFOLevelReg);
-	uart_printf("DATA IN FIFO:%x\n", res & 0x7F);
-	for (i = 0; i < 25; i++) {   
-		write_mfrc522(FIFODataReg, 0x00);   
+    write_mfrc522(CommandReg, PCD_GETRAND);
+    do {
+        res = read_mfrc522(CommandReg);
+        uart_printf("CMD:%x\n", res);
+    } while (res & PCD_GETRAND);
+    
+    for (i = 0; i < 10; i++) {
+        result[i] = read_mfrc522(FIFODataReg);
+        uart_printf("%x ", result[i]);
+    }
+    uart_printf("\n");
+    
+    // This follows directly the steps outlined in 16.1.1
+    // 1. Perform a soft reset.
+    MFRC522_Reset();
+    
+    // 2. Clear the internal buffer by writing 25 bytes of 00h
+    write_mfrc522(FIFOLevelReg, 0x80);      // flush the FIFO buffer
+    res = read_mfrc522(FIFOLevelReg);
+    uart_printf("DATA IN FIFO:%x\n", res & 0x7F);
+    for (i = 0; i < 25; i++) {   
+        write_mfrc522(FIFODataReg, 0x00);   
     }
     res = read_mfrc522(FIFOLevelReg);
-	uart_printf("DATA IN FIFO:%x\n", res & 0x7F);
-	
-	write_mfrc522(CommandReg, PCD_MEM);		// transfer to internal buffer
-	do {
-		res = read_mfrc522(CommandReg);
-		uart_printf("CMD:%x\n", res);
-	} while (res & PCD_MEM);
-	
-	// 3. Enable self-test
-	write_mfrc522(AutoTestReg, 0x09);
-	
-	// 4. Write 00h to FIFO buffer
-	write_mfrc522(FIFODataReg, 0x00);
-	
-	// 5. Start self-test by issuing the CalcCRC command
-	write_mfrc522(CommandReg, PCD_CALCCRC);
-	
-	// 6. Wait for self-test to complete
-	for (i = 0; i < 0xFF; i++) {
-		// The datasheet does not specify exact completion condition except
-		// that FIFO buffer should contain 64 bytes.
-		// While selftest is initiated by CalcCRC command
-		// it behaves differently from normal CRC computation,
-		// so one can't reliably use DivIrqReg to check for completion.
-		// It is reported that some devices does not trigger CRCIRq flag
-		// during selftest.
-		n = read_mfrc522(FIFOLevelReg);
-		uart_printf("n:%x\n", n);
-		if (n >= 64) {
-			break;
-		}
-	}
-	write_mfrc522(CommandReg, PCD_IDLE);		// Stop calculating CRC for new content in the FIFO.
-	
-	// 7. Read out resulting 64 bytes from the FIFO buffer.
-	for (i = 0; i < 64; i++) {
-		result[i] = read_mfrc522(FIFODataReg);
-	}
-	// Auto self-test done
-	// Reset AutoTestReg register to be 0 again. Required for normal operation.
-	write_mfrc522(AutoTestReg, 0x00);
-	
-	// Determine firmware version (see section 9.3.4.8 in spec)
-	version = read_mfrc522(VersionReg);
-	uart_printf("VER:%X\n", version);
-	
-	// Verify that the results match up to our expectations
-	for (i = 0; i < 64; i++) {
-		if (result[i] != MFRC522_firmware_referenceV2_0[i]) {
-			uart_printf("DIFF[%d]\:%x %x\n", i, result[i], MFRC522_firmware_referenceV2_0[i]);
-			return false;
-		}
-	}
-	
-	// Test passed; all is good.
-	uart_printf("SELF TEST PASS\n");
-	return true;
+    uart_printf("DATA IN FIFO:%x\n", res & 0x7F);
+    
+    write_mfrc522(CommandReg, PCD_MEM);     // transfer to internal buffer
+    do {
+        res = read_mfrc522(CommandReg);
+        uart_printf("CMD:%x\n", res);
+    } while (res & PCD_MEM);
+    
+    // 3. Enable self-test
+    write_mfrc522(AutoTestReg, 0x09);
+    
+    // 4. Write 00h to FIFO buffer
+    write_mfrc522(FIFODataReg, 0x00);
+    
+    // 5. Start self-test by issuing the CalcCRC command
+    write_mfrc522(CommandReg, PCD_CALCCRC);
+    
+    // 6. Wait for self-test to complete
+    for (i = 0; i < 0xFF; i++) {
+        // The datasheet does not specify exact completion condition except
+        // that FIFO buffer should contain 64 bytes.
+        // While selftest is initiated by CalcCRC command
+        // it behaves differently from normal CRC computation,
+        // so one can't reliably use DivIrqReg to check for completion.
+        // It is reported that some devices does not trigger CRCIRq flag
+        // during selftest.
+        n = read_mfrc522(FIFOLevelReg);
+        uart_printf("n:%x\n", n);
+        if (n >= 64) {
+            break;
+        }
+    }
+    write_mfrc522(CommandReg, PCD_IDLE);        // Stop calculating CRC for new content in the FIFO.
+    
+    // 7. Read out resulting 64 bytes from the FIFO buffer.
+    for (i = 0; i < 64; i++) {
+        result[i] = read_mfrc522(FIFODataReg);
+    }
+    // Auto self-test done
+    // Reset AutoTestReg register to be 0 again. Required for normal operation.
+    write_mfrc522(AutoTestReg, 0x00);
+    
+    // Determine firmware version (see section 9.3.4.8 in spec)
+    version = read_mfrc522(VersionReg);
+    uart_printf("VER:%X\n", version);
+    
+    // Verify that the results match up to our expectations
+    for (i = 0; i < 64; i++) {
+        if (result[i] != MFRC522_firmware_referenceV2_0[i]) {
+            uart_printf("DIFF[%d]\:%x %x\n", i, result[i], MFRC522_firmware_referenceV2_0[i]);
+            return false;
+        }
+    }
+    
+    // Test passed; all is good.
+    uart_printf("SELF TEST PASS\n");
+    return true;
 }
 
 /*********************************************************************

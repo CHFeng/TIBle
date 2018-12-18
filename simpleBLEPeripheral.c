@@ -22,7 +22,7 @@
   its documentation for any purpose.
 
   YOU FURTHER ACKNOWLEDGE AND AGREE THAT THE SOFTWARE AND DOCUMENTATION ARE
-  PROVIDED “AS IS” WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+  PROVIDED “AS IS?WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESS OR IMPLIED,
   INCLUDING WITHOUT LIMITATION, ANY WARRANTY OF MERCHANTABILITY, TITLE,
   NON-INFRINGEMENT AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL
   TEXAS INSTRUMENTS OR ITS LICENSORS BE LIABLE OR OBLIGATED UNDER CONTRACT,
@@ -74,6 +74,7 @@
 #include "gapbondmgr.h"
 
 #include "simpleBLEPeripheral.h"
+#include "mfrc522\mfrc522.h"
 
 #if defined FEATURE_OAD
   #include "oad.h"
@@ -162,25 +163,25 @@ static uint8 scanRspData[] =
   // complete name
   0x14,   // length of this data
   GAP_ADTYPE_LOCAL_NAME_COMPLETE,
-  0x53,   // 'S'
-  0x69,   // 'i'
-  0x6d,   // 'm'
-  0x70,   // 'p'
-  0x6c,   // 'l'
-  0x65,   // 'e'
-  0x42,   // 'B'
-  0x4c,   // 'L'
-  0x45,   // 'E'
+  0x47,   // 'G'
+  0x44,   // 'D'
+  0x46,   // 'F'
+  0x2D,   // '-'
   0x50,   // 'P'
-  0x65,   // 'e'
   0x72,   // 'r'
-  0x69,   // 'i'
+  0x6F,   // 'o'
+  0x74,   // 't'
+  0x6F,   // 'o'
+  0x74,   // 't'
+  0x79,   // 'y'
   0x70,   // 'p'
-  0x68,   // 'h'
   0x65,   // 'e'
-  0x72,   // 'r'
-  0x61,   // 'a'
-  0x6c,   // 'l'
+  0x2D,   // '-'
+  0x56,   // 'V'
+  0x31,   // '1'
+  0x2E,   // '.'
+  0x30,   // '0'
+  0x30,   // '0'
 
   // connection interval range
   0x05,   // length of this data
@@ -217,7 +218,7 @@ static uint8 advertData[] =
 };
 
 // GAP GATT Attributes
-static uint8 attDeviceName[GAP_DEVICE_NAME_LEN] = "Simple BLE Peripheral";
+static uint8 attDeviceName[GAP_DEVICE_NAME_LEN] = "GDF Prototype V-1.00";
 
 /*********************************************************************
  * LOCAL FUNCTIONS
@@ -718,10 +719,41 @@ static void peripheralStateNotificationCB( gaprole_States_t newState )
 static void performPeriodicTask( void )
 {
   uint8 valueToCopy;
-  uint8 stat;
+  uint8 stat = FALSE;
+  static uint8 noCardCount = 0;
+  static uint8 lastRFIDTag[5] = {0, 0, 0, 0, 0};
+  uint8 curRFIDTag[5] = {0, 0, 0, 0, 0};
+  uint8 i;
 
+  MFRC522_CheckCard(curRFIDTag);
+  if (curRFIDTag[4] != 0) {
+    if (lastRFIDTag[4] == 0) {
+      stat = TRUE;
+    }
+    noCardCount = 0;
+  } else {
+    // ³sÄò°»´ú¨ì¨S¦³tag¨â¦¸,ªí¥ÜµL¥d
+    if (noCardCount >= 2) {
+        stat = TRUE;
+    }
+    if (lastRFIDTag[4] != 0) {
+      noCardCount++;
+    }
+  }
+
+  if (stat) {
+    noCardCount = 0;
+    for (i = 0; i < 5; i++) {
+        lastRFIDTag[i] = curRFIDTag[i];
+    }
+    SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR5, SIMPLEPROFILE_CHAR5_LEN, &lastRFIDTag);
+    
+    uart_printf("TAG CHANGE:%x\n", lastRFIDTag[4]);
+    SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR4, sizeof(uint8), &lastRFIDTag[4]);
+  }
+  
   // Call to retrieve the value of the third characteristic in the profile
-  stat = SimpleProfile_GetParameter( SIMPLEPROFILE_CHAR3, &valueToCopy);
+  // stat = SimpleProfile_GetParameter( SIMPLEPROFILE_CHAR3, &valueToCopy);
 
   if( stat == SUCCESS )
   {
@@ -731,7 +763,7 @@ static void performPeriodicTask( void )
      * a GATT client device, then a notification will be sent every time this
      * function is called.
      */
-    SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR4, sizeof(uint8), &valueToCopy);
+    // SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR4, sizeof(uint8), &valueToCopy);
   }
 }
 
