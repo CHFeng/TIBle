@@ -568,7 +568,8 @@ char MFRC522_ToCard(char command, char *sendData, char sendLen, char *backData, 
   }
 
   // Waiting to receive data to complete
-  i = 100;  // i according to the clock frequency adjustment, the operator M1 card maximum waiting time 25ms
+  // 此數值的修改原作者目標為等待25ms
+  i = 50;
   do
   {
     // CommIrqReg[7..0]

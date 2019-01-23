@@ -723,7 +723,7 @@ static void peripheralStateNotificationCB( gaprole_States_t newState )
  */
 static void performPeriodicTask( void )
 {
-  uint8 stat = FALSE;
+  uint8 changed = FALSE;
   static uint8 noCardCount = 0;
   static uint8 firstConnDelay = 0;
   uint8 curRFIDTag[5] = {0, 0, 0, 0, 0};
@@ -736,21 +736,21 @@ static void performPeriodicTask( void )
 
   MFRC522_CheckCard(curRFIDTag);
   if (curRFIDTag[4] != 0) {
-    if (lastRFIDTag[4] == 0) {
-      stat = TRUE;
+    if (lastRFIDTag[4] != curRFIDTag[4]) {
+      changed = TRUE;
     }
     noCardCount = 0;
   } else {
-    // 連續偵測到沒有tag兩次,表示無卡
-    if (noCardCount >= 2) {
-        stat = TRUE;
+    // 連續偵測到沒有tag 2次,表示無卡
+    if (noCardCount >= 1) {
+        changed = TRUE;
     }
     if (lastRFIDTag[4] != 0) {
       noCardCount++;
     }
   }
 
-  if (stat) {
+  if (changed) {
     noCardCount = 0;
     for (i = 0; i < 5; i++) {
         lastRFIDTag[i] = curRFIDTag[i];
@@ -758,13 +758,13 @@ static void performPeriodicTask( void )
     SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR5, SIMPLEPROFILE_CHAR5_LEN, &lastRFIDTag);
     
     uart_printf("TAG CHANGE:%x\n", lastRFIDTag[4]);
-    SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR4, sizeof(uint8), &lastRFIDTag[4]);
+    // SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR4, sizeof(uint8), &lastRFIDTag[4]);
   }
   // 當裝置第一次連接上APP,持續發送notification 4次
-  if (firstConnDelay < 4) {
+  //if (firstConnDelay < 4) {
     SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR4, sizeof(uint8), &lastRFIDTag[4]);
-    firstConnDelay++;
-  }
+    //firstConnDelay++;
+  //}
 }
 
 /*********************************************************************
