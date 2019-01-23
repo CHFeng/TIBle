@@ -725,18 +725,22 @@ static void performPeriodicTask( void )
 {
   uint8 changed = FALSE;
   static uint8 noCardCount = 0;
-  static uint8 firstConnDelay = 0;
+  static uint8 sendNotifyCount = 0;
   uint8 curRFIDTag[5] = {0, 0, 0, 0, 0};
   uint8 i;
 
   if (gapProfileState != GAPROLE_CONNECTED) {
-    firstConnDelay = 0;
+    sendNotifyCount = 0;
     return;
   }
 
   MFRC522_CheckCard(curRFIDTag);
   if (curRFIDTag[4] != 0) {
-    if (lastRFIDTag[4] != curRFIDTag[4]) {
+    if (lastRFIDTag[0] != curRFIDTag[0] ||
+        lastRFIDTag[1] != curRFIDTag[1] ||
+        lastRFIDTag[2] != curRFIDTag[2] ||
+        lastRFIDTag[3] != curRFIDTag[3] ||
+        lastRFIDTag[4] != curRFIDTag[4]) {
       changed = TRUE;
     }
     noCardCount = 0;
@@ -758,13 +762,14 @@ static void performPeriodicTask( void )
     SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR5, SIMPLEPROFILE_CHAR5_LEN, &lastRFIDTag);
     
     uart_printf("TAG CHANGE:%x\n", lastRFIDTag[4]);
-    // SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR4, sizeof(uint8), &lastRFIDTag[4]);
-  }
-  // 當裝置第一次連接上APP,持續發送notification 4次
-  //if (firstConnDelay < 4) {
     SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR4, sizeof(uint8), &lastRFIDTag[4]);
-    //firstConnDelay++;
-  //}
+    sendNotifyCount = 0;
+  }
+  if (sendNotifyCount >= 2) {
+    SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR4, sizeof(uint8), &lastRFIDTag[4]);
+    sendNotifyCount = 0;
+  }
+  sendNotifyCount++;
 }
 
 /*********************************************************************
