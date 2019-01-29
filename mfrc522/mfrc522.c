@@ -902,6 +902,12 @@ void MFRC522_Halt(void)
   status = MFRC522_ToCard(PCD_TRANSCEIVE, buff, 4, buff,&unLen);
 }
 
+void MFRC522_Sleep(void)
+{
+  MFRC522_Halt();
+  // enable Soft power-down mode
+  write_mfrc522(CommandReg, 0x30);
+}
 void MFRC522_CheckCard(unsigned char* serial)
 {
     char status, checksum1, str[MAX_LEN];

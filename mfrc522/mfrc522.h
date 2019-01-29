@@ -28,7 +28,7 @@ extern "C"
  * Task Initialization for the BLE Application
  */
 extern void MFRC522_Init( uint8 task_id );
-
+extern void MFRC522_Sleep();
 /*
  * Task Event Processor for the BLE Application
  */

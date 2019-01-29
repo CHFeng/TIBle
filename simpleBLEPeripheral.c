@@ -436,7 +436,6 @@ void SimpleBLEPeripheral_Init( uint8 task_id )
 
   // Setup a delayed profile startup
   osal_set_event( simpleBLEPeripheral_TaskID, SBP_START_DEVICE_EVT );
-
 }
 
 /*********************************************************************
@@ -455,6 +454,7 @@ void SimpleBLEPeripheral_Init( uint8 task_id )
 uint16 SimpleBLEPeripheral_ProcessEvent( uint8 task_id, uint16 events )
 {
   VOID task_id; // OSAL required parameter that isn't used in this function
+  static uint8 noConCount = 0;
 
   if ( events & SYS_EVENT_MSG )
   {
@@ -493,8 +493,18 @@ uint16 SimpleBLEPeripheral_ProcessEvent( uint8 task_id, uint16 events )
     // if ble state is on connect, speed up SBP_PERIODIC_EVT to 500ms
     if (gapProfileState == GAPROLE_CONNECTED) {
       osal_start_timerEx( simpleBLEPeripheral_TaskID, SBP_PERIODIC_EVT, SBP_PERIODIC_EVT_PERIOD / 10 );
+      noConCount = 0;
     } else {
-      osal_start_timerEx( simpleBLEPeripheral_TaskID, SBP_PERIODIC_EVT, SBP_PERIODIC_EVT_PERIOD );
+      if (noConCount >= 2) {
+        uart_printf("SLEEP\n");
+        MFRC522_Sleep();
+        // modify hal_sleep.c to force CC2541 into PM3
+        halSleep(0);
+        noConCount = 0;
+      } else {
+        osal_start_timerEx( simpleBLEPeripheral_TaskID, SBP_PERIODIC_EVT, SBP_PERIODIC_EVT_PERIOD );
+        noConCount++;
+      }
     }
 
     // Perform periodic application task
