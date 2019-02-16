@@ -203,9 +203,9 @@ static uint8 mfrc522_TaskID;   // Task ID for internal task/event processing
 /*********************************************************************
  * LOCAL FUNCTIONS
  */
-static void MFRC522_Reset(void);
-static void AntennaOn(void);
-static bool MFRC522_SelfTest(void);
+static void mfrc522_reset(void);
+static void antenna_on(void);
+static bool mfrc522_selftest(void);
 static void mfrc_hw_init(void);
 static void write_mfrc522(char addr, char val);
 static char read_mfrc522(char addr);
@@ -235,13 +235,6 @@ static void waitUs(uint16 microSecs);
 void MFRC522_Init( uint8 task_id )
 {
     mfrc522_TaskID = task_id;
-    // config uart
-    halUARTCfg_t halUARTCfg;
-    halUARTCfg.configured =TRUE;
-    halUARTCfg.baudRate =HAL_UART_BR_115200;
-    halUARTCfg.flowControl =HAL_UART_FLOW_OFF;
-    HalUARTOpen(HAL_UART_PORT_0, &halUARTCfg);
-    HalUARTWrite(HAL_UART_PORT_0, "HELLO CC2540!\r\n", 15);
 
     // Setup a delayed profile startup
     osal_set_event( mfrc522_TaskID, MFRC522_EVENT );
@@ -349,9 +342,9 @@ static void mfrc_hw_init(void)
     U1BAUD = baud_mantissa;
 
     /* config mfrc522 settings */
-    MFRC522_SelfTest();
+    mfrc522_selftest();
     
-    MFRC522_Reset();
+    mfrc522_reset();
     
     // Timer: TPrescaler*TreloadVal/6.78MHz = 24ms
     write_mfrc522(TModeReg, 0x8D);      // Tauto=1; f(Timer) = 6.78MHz/TPreScaler
@@ -367,7 +360,7 @@ static void mfrc_hw_init(void)
     } while (result != 0x92);
 
     // turn antenna on
-    AntennaOn();
+    antenna_on();
 }
 
 /*
@@ -475,7 +468,7 @@ void ClearBitMask(char reg, char mask)
  * Input: None
  * Return value: None
  */
-void AntennaOn(void)
+void antenna_on(void)
 {
   SetBitMask(TxControlReg, 0x03);
 }
@@ -499,7 +492,7 @@ void AntennaOff(void)
  * Input: None
  * Return value: None
  */
-void MFRC522_Reset(void)
+void mfrc522_reset(void)
 {
     uint8 result;
     write_mfrc522(CommandReg, PCD_RESETPHASE);
@@ -935,7 +928,7 @@ void MFRC522_CheckCard(unsigned char* serial)
     }
 }
 
-bool MFRC522_SelfTest(void) 
+bool mfrc522_selftest(void) 
 {
     uint8 i, n, result[64], version, res = 0;
     // Version 2.0 (0x92)
@@ -965,7 +958,7 @@ bool MFRC522_SelfTest(void)
     
     // This follows directly the steps outlined in 16.1.1
     // 1. Perform a soft reset.
-    MFRC522_Reset();
+    mfrc522_reset();
     
     // 2. Clear the internal buffer by writing 25 bytes of 00h
     write_mfrc522(FIFOLevelReg, 0x80);      // flush the FIFO buffer

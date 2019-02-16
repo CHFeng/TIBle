@@ -134,6 +134,7 @@
   #define ADV_IN_CONN_WAIT                    500 // delay 500 ms
 #endif
 
+#define FORCE_SLEEP	TRUE
 /*********************************************************************
  * TYPEDEFS
  */
@@ -237,6 +238,7 @@ static void simpleBLEPeripheral_HandleKeys( uint8 shift, uint8 keys );
 #if (defined HAL_LCD) && (HAL_LCD == TRUE)
 static char *bdAddr2Str ( uint8 *pAddr );
 #endif // (defined HAL_LCD) && (HAL_LCD == TRUE)
+static void configUart(void);
 
 
 
@@ -434,6 +436,7 @@ void SimpleBLEPeripheral_Init( uint8 task_id )
 
 #endif // defined ( DC_DC_P0_7 )
 
+  configUart();
   // Setup a delayed profile startup
   osal_set_event( simpleBLEPeripheral_TaskID, SBP_START_DEVICE_EVT );
 }
@@ -495,6 +498,7 @@ uint16 SimpleBLEPeripheral_ProcessEvent( uint8 task_id, uint16 events )
       osal_start_timerEx( simpleBLEPeripheral_TaskID, SBP_PERIODIC_EVT, SBP_PERIODIC_EVT_PERIOD / 10 );
       noConCount = 0;
     } else {
+#if (FORCE_SLEEP == TRUE)
       if (noConCount >= 2) {
         uart_printf("SLEEP\n");
         MFRC522_Sleep();
@@ -505,6 +509,9 @@ uint16 SimpleBLEPeripheral_ProcessEvent( uint8 task_id, uint16 events )
         osal_start_timerEx( simpleBLEPeripheral_TaskID, SBP_PERIODIC_EVT, SBP_PERIODIC_EVT_PERIOD );
         noConCount++;
       }
+#else
+        osal_start_timerEx( simpleBLEPeripheral_TaskID, SBP_PERIODIC_EVT, SBP_PERIODIC_EVT_PERIOD );
+#endif
     }
 
     // Perform periodic application task
@@ -855,5 +862,14 @@ char *bdAddr2Str( uint8 *pAddr )
 }
 #endif // (defined HAL_LCD) && (HAL_LCD == TRUE)
 
+static void configUart(void)
+{
+    halUARTCfg_t halUARTCfg;
+    halUARTCfg.configured = TRUE;
+    halUARTCfg.baudRate = HAL_UART_BR_115200;
+    halUARTCfg.flowControl = HAL_UART_FLOW_OFF;
+    HalUARTOpen(HAL_UART_PORT_0, &halUARTCfg);
+    HalUARTWrite(HAL_UART_PORT_0, "HELLO CC2540!\r\n", 15);
+}
 /*********************************************************************
 *********************************************************************/
