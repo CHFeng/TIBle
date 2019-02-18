@@ -235,11 +235,12 @@ static void waitUs(uint16 microSecs);
 void MFRC522_Init( uint8 task_id )
 {
     mfrc522_TaskID = task_id;
+
     // config uart
     halUARTCfg_t halUARTCfg;
-    halUARTCfg.configured =TRUE;
-    halUARTCfg.baudRate =HAL_UART_BR_115200;
-    halUARTCfg.flowControl =HAL_UART_FLOW_OFF;
+    halUARTCfg.configured = TRUE;
+    halUARTCfg.baudRate = HAL_UART_BR_9600;
+    halUARTCfg.flowControl = HAL_UART_FLOW_OFF;
     HalUARTOpen(HAL_UART_PORT_0, &halUARTCfg);
     HalUARTWrite(HAL_UART_PORT_0, "HELLO CC2540!\r\n", 15);
 
@@ -626,7 +627,7 @@ char MFRC522_ToCard(char command, char *sendData, char sendLen, char *backData, 
     }
   }
   else {
-    // uart_printf("TIMEOUT\n");
+     //uart_printf("TIMEOUT\n");
   }
 
   return status;
