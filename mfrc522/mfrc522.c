@@ -210,6 +210,7 @@ static void mfrc_hw_init(void);
 static void write_mfrc522(char addr, char val);
 static char read_mfrc522(char addr);
 static void waitUs(uint16 microSecs);
+static void configUART(void);
 /*********************************************************************
  * PROFILE CALLBACKS
  */
@@ -235,6 +236,8 @@ static void waitUs(uint16 microSecs);
 void MFRC522_Init( uint8 task_id )
 {
     mfrc522_TaskID = task_id;
+    // config uart
+	uart_init();
 
     // Setup a delayed profile startup
     osal_set_event( mfrc522_TaskID, MFRC522_EVENT );
@@ -288,9 +291,21 @@ uint16 MFRC522_ProcessEvent( uint8 task_id, uint16 events )
  * PRIVATE FUNCTIONS
  */
 
+void uart_init(void)
+{
+#ifdef UART_DEBUG
+    halUARTCfg_t halUARTCfg;
+    halUARTCfg.configured = TRUE;
+    halUARTCfg.baudRate = HAL_UART_BR_9600;
+    halUARTCfg.flowControl = HAL_UART_FLOW_OFF;
+    HalUARTOpen(HAL_UART_PORT_0, &halUARTCfg);
+    HalUARTWrite(HAL_UART_PORT_0, "HELLO CC2540!\r\n", 15);
+#endif
+}
+
 void uart_printf(const char *fmt, ...)
 {
-    
+#ifdef UART_DEBUG
     char endChar = '\r';
     va_list ap;
     char string[256];
@@ -308,6 +323,7 @@ void uart_printf(const char *fmt, ...)
     }
 
     va_end(ap);
+#endif
 }
 
 static void mfrc_hw_init(void)
@@ -619,7 +635,7 @@ char MFRC522_ToCard(char command, char *sendData, char sendLen, char *backData, 
     }
   }
   else {
-    // uart_printf("TIMEOUT\n");
+    uart_printf("TIMEOUT\n");
   }
 
   return status;

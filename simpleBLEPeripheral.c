@@ -238,8 +238,6 @@ static void simpleBLEPeripheral_HandleKeys( uint8 shift, uint8 keys );
 #if (defined HAL_LCD) && (HAL_LCD == TRUE)
 static char *bdAddr2Str ( uint8 *pAddr );
 #endif // (defined HAL_LCD) && (HAL_LCD == TRUE)
-static void configUart(void);
-
 
 
 /*********************************************************************
@@ -436,7 +434,8 @@ void SimpleBLEPeripheral_Init( uint8 task_id )
 
 #endif // defined ( DC_DC_P0_7 )
 
-  configUart();
+  HalLedSet(HAL_LED_2, HAL_LED_MODE_ON);
+
   // Setup a delayed profile startup
   osal_set_event( simpleBLEPeripheral_TaskID, SBP_START_DEVICE_EVT );
 }
@@ -745,6 +744,7 @@ static void performPeriodicTask( void )
   static uint8 sendNotifyCount = 0;
   uint8 curRFIDTag[5] = {0, 0, 0, 0, 0};
   uint8 i;
+  uint16 batteryV;
 
   if (gapProfileState != GAPROLE_CONNECTED) {
     sendNotifyCount = 0;
@@ -784,6 +784,19 @@ static void performPeriodicTask( void )
   }
   if (sendNotifyCount >= 2) {
     SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR4, sizeof(uint8), &lastRFIDTag[4]);
+
+    // to read battery volatge
+    batteryV = HalAdcRead(HAL_ADC_CHANNEL_0, HAL_ADC_RESOLUTION_12);
+    // uart_printf("Orig BATTERY LV:%x\n", batteryV);
+    batteryV = (batteryV * 33) >> 11;
+    // uart_printf("Convert BATTERY LV:%x\n", batteryV);
+    SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR1, sizeof ( uint8 ), &batteryV );
+    // the battery max voltage is 4.2v and divided by 2 is 2.1v
+    // so if the voltage less than 1.6v flash led
+    if (batteryV < 16) {
+      HalLedSet(HAL_LED_2, HAL_LED_MODE_BLINK);
+    }
+
     sendNotifyCount = 0;
   }
   sendNotifyCount++;
@@ -862,14 +875,5 @@ char *bdAddr2Str( uint8 *pAddr )
 }
 #endif // (defined HAL_LCD) && (HAL_LCD == TRUE)
 
-static void configUart(void)
-{
-    halUARTCfg_t halUARTCfg;
-    halUARTCfg.configured = TRUE;
-    halUARTCfg.baudRate = HAL_UART_BR_115200;
-    halUARTCfg.flowControl = HAL_UART_FLOW_OFF;
-    HalUARTOpen(HAL_UART_PORT_0, &halUARTCfg);
-    HalUARTWrite(HAL_UART_PORT_0, "HELLO CC2540!\r\n", 15);
-}
 /*********************************************************************
 *********************************************************************/
