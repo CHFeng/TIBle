@@ -231,6 +231,7 @@ static void peripheralStateNotificationCB( gaprole_States_t newState );
 static void performPeriodicTask( void );
 static void simpleProfileChangeCB( uint8 paramID );
 static void enterDeepSleep(void);
+static void checkBattery(void);
 #if defined( CC2540_MINIDK )
 static void simpleBLEPeripheral_HandleKeys( uint8 shift, uint8 keys );
 #endif
@@ -740,7 +741,6 @@ static void performPeriodicTask( void )
   static uint8 sendNotifyCount = 0;
   uint8 curRFIDTag[5] = {0, 0, 0, 0, 0};
   uint8 i;
-  uint16 batteryV;
 
   if (gapProfileState != GAPROLE_CONNECTED) {
     sendNotifyCount = 0;
@@ -781,17 +781,7 @@ static void performPeriodicTask( void )
   if (sendNotifyCount >= 2) {
     SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR4, sizeof(uint8), &lastRFIDTag[4]);
 
-    // to read battery volatge
-    batteryV = HalAdcRead(HAL_ADC_CHANNEL_0, HAL_ADC_RESOLUTION_12);
-    // uart_printf("Orig BATTERY LV:%x\n", batteryV);
-    batteryV = (batteryV * 33) >> 11;
-    // uart_printf("Convert BATTERY LV:%x\n", batteryV);
-    SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR1, sizeof ( uint8 ), &batteryV );
-    // the battery max voltage is 4.2v and divided by 2 is 2.1v
-    // so if the voltage less than 1.6v flash led
-    if (batteryV < 16) {
-      HalLedSet(HAL_LED_2, HAL_LED_MODE_BLINK);
-    }
+    checkBattery();
 
     sendNotifyCount = 0;
   }
@@ -837,12 +827,47 @@ static void simpleProfileChangeCB( uint8 paramID )
   }
 }
 
+/*********************************************************************
+ * @fn      enterDeepSleep
+ *
+ * @brief   force system enter to PM3, need to modify hal_sleep.c
+ *
+ * @param   none
+ *
+ * @return  none
+ */
 static void enterDeepSleep(void)
 {
     uart_printf("SLEEP\n");
     MFRC522_Sleep();
-    // modify hal_sleep.c to force CC2541 into PM3
     halSleep(0);
+}
+
+/*********************************************************************
+ * @fn      checkBattery
+ *
+ * @brief   read ADC pin 0 to caculate battery's voltage.
+ *          The battery's max voltage is 4.2V. The value will be divided by 2 to input to pin 0.
+ *
+ * @param   none
+ *
+ * @return  none
+ */
+static void checkBattery(void)
+{
+    uint16 batteryV;
+
+    // to read battery volatge
+    batteryV = HalAdcRead(HAL_ADC_CHANNEL_0, HAL_ADC_RESOLUTION_12);
+    // uart_printf("Orig BATTERY LV:%x\n", batteryV);
+    batteryV = (batteryV * 33) >> 11;
+    // uart_printf("Convert BATTERY LV:%x\n", batteryV);
+    SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR1, sizeof ( uint8 ), &batteryV );
+    // the battery max voltage is 4.2v and divided by 2 is 2.1v
+    // so if the voltage less than 1.6v flash led
+    if (batteryV < 16) {
+      HalLedSet(HAL_LED_2, HAL_LED_MODE_BLINK);
+    }
 }
 #if (defined HAL_LCD) && (HAL_LCD == TRUE)
 /*********************************************************************
