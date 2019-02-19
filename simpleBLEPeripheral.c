@@ -134,7 +134,7 @@
   #define ADV_IN_CONN_WAIT                    500 // delay 500 ms
 #endif
 
-#define FORCE_SLEEP	TRUE
+#define DEEP_SLEEP	TRUE
 /*********************************************************************
  * TYPEDEFS
  */
@@ -230,7 +230,7 @@ static void simpleBLEPeripheral_ProcessOSALMsg( osal_event_hdr_t *pMsg );
 static void peripheralStateNotificationCB( gaprole_States_t newState );
 static void performPeriodicTask( void );
 static void simpleProfileChangeCB( uint8 paramID );
-
+static void enterDeepSleep(void);
 #if defined( CC2540_MINIDK )
 static void simpleBLEPeripheral_HandleKeys( uint8 shift, uint8 keys );
 #endif
@@ -497,20 +497,16 @@ uint16 SimpleBLEPeripheral_ProcessEvent( uint8 task_id, uint16 events )
       osal_start_timerEx( simpleBLEPeripheral_TaskID, SBP_PERIODIC_EVT, SBP_PERIODIC_EVT_PERIOD / 10 );
       noConCount = 0;
     } else {
-#if (FORCE_SLEEP == TRUE)
+      osal_start_timerEx( simpleBLEPeripheral_TaskID, SBP_PERIODIC_EVT, SBP_PERIODIC_EVT_PERIOD );
+
       if (noConCount >= 2) {
-        uart_printf("SLEEP\n");
-        MFRC522_Sleep();
-        // modify hal_sleep.c to force CC2541 into PM3
-        halSleep(0);
         noConCount = 0;
+#if (DEEP_SLEEP == TRUE)
+        enterDeepSleep();
+#endif
       } else {
-        osal_start_timerEx( simpleBLEPeripheral_TaskID, SBP_PERIODIC_EVT, SBP_PERIODIC_EVT_PERIOD );
         noConCount++;
       }
-#else
-        osal_start_timerEx( simpleBLEPeripheral_TaskID, SBP_PERIODIC_EVT, SBP_PERIODIC_EVT_PERIOD );
-#endif
     }
 
     // Perform periodic application task
@@ -841,6 +837,13 @@ static void simpleProfileChangeCB( uint8 paramID )
   }
 }
 
+static void enterDeepSleep(void)
+{
+    uart_printf("SLEEP\n");
+    MFRC522_Sleep();
+    // modify hal_sleep.c to force CC2541 into PM3
+    halSleep(0);
+}
 #if (defined HAL_LCD) && (HAL_LCD == TRUE)
 /*********************************************************************
  * @fn      bdAddr2Str
