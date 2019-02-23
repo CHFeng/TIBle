@@ -210,7 +210,7 @@ static void mfrc_hw_init(void);
 static void write_mfrc522(char addr, char val);
 static char read_mfrc522(char addr);
 static void waitUs(uint16 microSecs);
-static void configUART(void);
+static void uart_init(void);
 /*********************************************************************
  * PROFILE CALLBACKS
  */
