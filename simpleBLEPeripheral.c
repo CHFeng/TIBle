@@ -159,7 +159,8 @@ static uint8 simpleBLEPeripheral_TaskID;   // Task ID for internal task/event pr
 static gaprole_States_t gapProfileState = GAPROLE_INIT;
 // RFID tag serial number
 static uint8 lastRFIDTag[5] = {0, 0, 0, 0, 0};
-
+// BLE mac address
+static uint8 bleMac[B_ADDR_LEN];
 // GAP - SCAN RSP data (max size = 31 bytes)
 static uint8 scanRspData[] =
 {
@@ -169,6 +170,9 @@ static uint8 scanRspData[] =
   0x47,   // 'G'
   0x44,   // 'D'
   0x46,   // 'F'
+  0x76,   // 'V'
+  0x31,   // '1'
+  0x30,   // '0'
   0x2D,   // '-'
   0x50,   // 'P'
   0x72,   // 'r'
@@ -180,11 +184,9 @@ static uint8 scanRspData[] =
   0x70,   // 'p'
   0x65,   // 'e'
   0x2D,   // '-'
-  0x56,   // 'V'
-  0x31,   // '1'
-  0x2E,   // '.'
-  0x30,   // '0'
-  0x30,   // '0'
+  0x2D,   // '-'
+  0x2D,   // '-'
+
 
   // connection interval range
   0x05,   // length of this data
@@ -221,7 +223,7 @@ static uint8 advertData[] =
 };
 
 // GAP GATT Attributes
-static uint8 attDeviceName[GAP_DEVICE_NAME_LEN] = "GDF Prototype V-1.00";
+static uint8 attDeviceName[GAP_DEVICE_NAME_LEN] = "GDFv10-";
 
 /*********************************************************************
  * LOCAL FUNCTIONS
@@ -232,6 +234,8 @@ static void performPeriodicTask( void );
 static void simpleProfileChangeCB( uint8 paramID );
 static void enterDeepSleep(void);
 static void checkBattery(void);
+static void bleNameInit(void);
+
 #if defined( CC2540_MINIDK )
 static void simpleBLEPeripheral_HandleKeys( uint8 shift, uint8 keys );
 #endif
@@ -286,6 +290,7 @@ static simpleProfileCBs_t simpleBLEPeripheral_SimpleProfileCBs =
 void SimpleBLEPeripheral_Init( uint8 task_id )
 {
   simpleBLEPeripheral_TaskID = task_id;
+  bleNameInit();
 
   // Setup the GAP
   VOID GAP_SetParamValue( TGAP_CONN_PAUSE_PERIPHERAL, DEFAULT_CONN_PAUSE_PERIPHERAL );
@@ -869,6 +874,29 @@ static void checkBattery(void)
       HalLedSet(HAL_LED_2, HAL_LED_MODE_BLINK);
     }
 }
+
+/*********************************************************************
+ * @fn      bleNameInit
+ *
+ * @brief   read ble mac address from 0x780E and to set mac on scanRspData and advertData
+ *
+ * @return  none
+ */
+
+static void bleNameInit(void)
+{
+    uint8 i;
+	uint8 hex[] = "0123456789ABCDEF";
+
+    for (i = 0; i < B_ADDR_LEN; i++) {
+        bleMac[i] = XREG(0x7813 - i);
+        attDeviceName[7 + (i * 2)] = hex[bleMac[i] >> 4];
+        attDeviceName[8 + (i * 2)] = hex[bleMac[i] & 0xF];
+        scanRspData[9 + (i * 2)] = hex[bleMac[i] >> 4];
+        scanRspData[10 + (i * 2)] = hex[bleMac[i] & 0xF];
+    }
+}
+
 #if (defined HAL_LCD) && (HAL_LCD == TRUE)
 /*********************************************************************
  * @fn      bdAddr2Str
