@@ -127,13 +127,13 @@ static CONST gattAttrType_t simpleProfileService = { ATT_BT_UUID_SIZE, simplePro
 
 
 // Simple Profile Characteristic 1 Properties
-static uint8 simpleProfileChar1Props = GATT_PROP_READ | GATT_PROP_WRITE;
+static uint8 simpleProfileChar1Props = GATT_PROP_READ;
 
 // Characteristic 1 Value
 static uint8 simpleProfileChar1 = 0;
 
 // Simple Profile Characteristic 1 User Description
-static uint8 simpleProfileChar1UserDesp[17] = "Characteristic 1\0";
+static uint8 simpleProfileChar1UserDesp[17] = "Battery Vol * 10\0";
 
 
 // Simple Profile Characteristic 2 Properties
@@ -143,17 +143,17 @@ static uint8 simpleProfileChar2Props = GATT_PROP_READ;
 static uint8 simpleProfileChar2 = 0;
 
 // Simple Profile Characteristic 2 User Description
-static uint8 simpleProfileChar2UserDesp[17] = "Characteristic 2\0";
+static uint8 simpleProfileChar2UserDesp[17] = "None Use\0";
 
 
 // Simple Profile Characteristic 3 Properties
-static uint8 simpleProfileChar3Props = GATT_PROP_WRITE;
+static uint8 simpleProfileChar3Props = GATT_PROP_READ;
 
 // Characteristic 3 Value
 static uint8 simpleProfileChar3 = 0;
 
 // Simple Profile Characteristic 3 User Description
-static uint8 simpleProfileChar3UserDesp[17] = "Characteristic 3\0";
+static uint8 simpleProfileChar3UserDesp[17] = "None Use\0";
 
 
 // Simple Profile Characteristic 4 Properties
@@ -169,7 +169,7 @@ static uint8 simpleProfileChar4 = 0;
 static gattCharCfg_t simpleProfileChar4Config[GATT_MAX_NUM_CONN];
                                         
 // Simple Profile Characteristic 4 User Description
-static uint8 simpleProfileChar4UserDesp[17] = "Characteristic 4\0";
+static uint8 simpleProfileChar4UserDesp[17] = "Tag Change\0";
 
 
 // Simple Profile Characteristic 5 Properties
@@ -179,7 +179,7 @@ static uint8 simpleProfileChar5Props = GATT_PROP_READ;
 static uint8 simpleProfileChar5[SIMPLEPROFILE_CHAR5_LEN] = { 0, 0, 0, 0, 0 };
 
 // Simple Profile Characteristic 5 User Description
-static uint8 simpleProfileChar5UserDesp[17] = "Read RFID TAG\0";
+static uint8 simpleProfileChar5UserDesp[17] = "Read Tag Value\0";
 
 
 /*********************************************************************
