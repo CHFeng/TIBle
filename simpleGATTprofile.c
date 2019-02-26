@@ -143,7 +143,7 @@ static uint8 simpleProfileChar2Props = GATT_PROP_READ;
 static uint8 simpleProfileChar2 = 0;
 
 // Simple Profile Characteristic 2 User Description
-static uint8 simpleProfileChar2UserDesp[17] = "None Use\0";
+static uint8 simpleProfileChar2UserDesp[17] = "Reader Status\0";
 
 
 // Simple Profile Characteristic 3 Properties

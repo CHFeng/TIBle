@@ -199,7 +199,7 @@
  * LOCAL VARIABLES
  */
 static uint8 mfrc522_TaskID;   // Task ID for internal task/event processing
-
+static uint8 selfTestStatus = FALSE;
 /*********************************************************************
  * LOCAL FUNCTIONS
  */
@@ -237,7 +237,7 @@ void MFRC522_Init( uint8 task_id )
 {
     mfrc522_TaskID = task_id;
     // config uart
-	uart_init();
+    uart_init();
 
     // Setup a delayed profile startup
     osal_set_event( mfrc522_TaskID, MFRC522_EVENT );
@@ -286,6 +286,11 @@ uint16 MFRC522_ProcessEvent( uint8 task_id, uint16 events )
 
     // Discard unknown events
     return 0;
+}
+
+uint8 MFRC522_GetTestStatus(void)
+{
+    return selfTestStatus;
 }
 /*********************************************************************
  * PRIVATE FUNCTIONS
@@ -358,7 +363,7 @@ static void mfrc_hw_init(void)
     U1BAUD = baud_mantissa;
 
     /* config mfrc522 settings */
-    mfrc522_selftest();
+    selfTestStatus = mfrc522_selftest();
     
     mfrc522_reset();
     
@@ -369,11 +374,6 @@ static void mfrc_hw_init(void)
     write_mfrc522(TReloadRegL, 0xE8);
     write_mfrc522(TxAutoReg, 0x40);     // force 100% ASK modulation
     write_mfrc522(ModeReg, 0x3D);       // CRC Initial value 0x6363
-
-    do {
-        result = read_mfrc522(VersionReg);
-        uart_printf("VER RES:%x\n", result);
-    } while (result != 0x92);
 
     // turn antenna on
     antenna_on();
@@ -511,6 +511,10 @@ void AntennaOff(void)
 void mfrc522_reset(void)
 {
     uint8 result;
+
+    if (selfTestStatus == false) {
+        return;
+    }
     write_mfrc522(CommandReg, PCD_RESETPHASE);
     // Wait for the PowerDown bit in CommandReg to be cleared (max 3x50ms)
     do {
@@ -917,11 +921,15 @@ void MFRC522_Sleep(void)
   // enable Soft power-down mode
   write_mfrc522(CommandReg, 0x30);
 }
+
 void MFRC522_CheckCard(unsigned char* serial)
 {
     char status, checksum1, str[MAX_LEN];
     uint8 i;
 
+    if (selfTestStatus == false) {
+        return;
+    }
     // Find cards
     status = MFRC522_Request(PICC_REQIDL, str);
     if (status == MI_OK) {
@@ -960,11 +968,30 @@ bool mfrc522_selftest(void)
         0xDC, 0x15, 0xBA, 0x3E, 0x7D, 0x95, 0x3B, 0x2F
     };
 
+    i = 10;
+    do {
+        res = read_mfrc522(VersionReg);
+        uart_printf("VER RES:%x\n", res);
+        waitUs(100);
+        i--;
+    } while (res != 0x92 && i > 0);
+
+    if (i == 0) {
+        return false;
+    }
+
     write_mfrc522(CommandReg, PCD_GETRAND);
+    i = 10;
     do {
         res = read_mfrc522(CommandReg);
         uart_printf("CMD:%x\n", res);
-    } while (res & PCD_GETRAND);
+        waitUs(100);
+        i--;
+    } while (res & PCD_GETRAND && i > 0);
+
+    if (i == 0) {
+        return false;
+    }
     
     for (i = 0; i < 10; i++) {
         result[i] = read_mfrc522(FIFODataReg);
@@ -987,10 +1014,18 @@ bool mfrc522_selftest(void)
     uart_printf("DATA IN FIFO:%x\n", res & 0x7F);
     
     write_mfrc522(CommandReg, PCD_MEM);     // transfer to internal buffer
+
+    i = 10;
     do {
         res = read_mfrc522(CommandReg);
         uart_printf("CMD:%x\n", res);
-    } while (res & PCD_MEM);
+        waitUs(100);
+        i--;
+    } while (res & PCD_MEM && i > 0);
+
+    if (i == 0) {
+        return false;
+    }
     
     // 3. Enable self-test
     write_mfrc522(AutoTestReg, 0x09);

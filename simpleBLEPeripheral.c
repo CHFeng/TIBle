@@ -742,6 +742,7 @@ static void peripheralStateNotificationCB( gaprole_States_t newState )
 static void performPeriodicTask( void )
 {
   uint8 changed = FALSE;
+  static int8 sendReaderStatus = -1;
   static uint8 noCardCount = 0;
   static uint8 sendNotifyCount = 0;
   uint8 curRFIDTag[5] = {0, 0, 0, 0, 0};
@@ -750,6 +751,11 @@ static void performPeriodicTask( void )
   if (gapProfileState != GAPROLE_CONNECTED) {
     sendNotifyCount = 0;
     return;
+  }
+
+  if (sendReaderStatus < 0) {
+    sendReaderStatus = MFRC522_GetTestStatus();
+    SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR2, sizeof(uint8), &sendReaderStatus);
   }
 
   MFRC522_CheckCard(curRFIDTag);

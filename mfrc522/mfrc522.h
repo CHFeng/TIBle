@@ -34,7 +34,7 @@ extern void MFRC522_Sleep();
  */
 extern uint16 MFRC522_ProcessEvent( uint8 task_id, uint16 events );
 extern void MFRC522_CheckCard(unsigned char* serial);
-
+extern uint8 MFRC522_GetTestStatus(void);
 extern void uart_printf(const char *fmt, ...);
 
 /*********************************************************************
