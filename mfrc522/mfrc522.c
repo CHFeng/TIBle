@@ -968,18 +968,6 @@ bool mfrc522_selftest(void)
         0xDC, 0x15, 0xBA, 0x3E, 0x7D, 0x95, 0x3B, 0x2F
     };
 
-    i = 10;
-    do {
-        res = read_mfrc522(VersionReg);
-        uart_printf("VER RES:%x\n", res);
-        waitUs(100);
-        i--;
-    } while (res != 0x92 && i > 0);
-
-    if (i == 0) {
-        return false;
-    }
-
     write_mfrc522(CommandReg, PCD_GETRAND);
     i = 10;
     do {
@@ -1071,6 +1059,18 @@ bool mfrc522_selftest(void)
             uart_printf("DIFF[%d]\:%x %x\n", i, result[i], MFRC522_firmware_referenceV2_0[i]);
             return false;
         }
+    }
+
+    i = 10;
+    do {
+        res = read_mfrc522(VersionReg);
+        uart_printf("VER RES:%x\n", res);
+        waitUs(100);
+        i--;
+    } while (res != 0x92 && i > 0);
+
+    if (i == 0) {
+        return false;
     }
     
     // Test passed; all is good.
