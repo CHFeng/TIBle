@@ -442,6 +442,10 @@ void SimpleBLEPeripheral_Init( uint8 task_id )
 
   HalLedSet(HAL_LED_2, HAL_LED_MODE_ON);
 
+  // enable channel 0(P0.0) be Analog I/O
+  // 直接設定p0.0是類比輸入,將hal_adc.c中enable and disable ADCCFG的程序移除,避免轉換
+  ADCCFG |= 0x01;
+
   // Setup a delayed profile startup
   osal_set_event( simpleBLEPeripheral_TaskID, SBP_START_DEVICE_EVT );
 }
@@ -869,7 +873,7 @@ static void checkBattery(void)
     uint16 batteryV;
 
     // to read battery volatge
-    batteryV = HalAdcRead(HAL_ADC_CHANNEL_0, HAL_ADC_RESOLUTION_12);
+    batteryV = HalAdcRead(HAL_ADC_CHANNEL_0, HAL_ADC_RESOLUTION_14);
     // uart_printf("Orig BATTERY LV:%x\n", batteryV);
     batteryV = (batteryV * 33) >> 11;
     // uart_printf("Convert BATTERY LV:%x\n", batteryV);
