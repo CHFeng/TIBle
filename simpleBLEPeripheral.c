@@ -134,7 +134,7 @@
   #define ADV_IN_CONN_WAIT                    500 // delay 500 ms
 #endif
 
-#define DEEP_SLEEP	TRUE
+#define NOLINK_SLEEP	FALSE
 /*********************************************************************
  * TYPEDEFS
  */
@@ -511,7 +511,7 @@ uint16 SimpleBLEPeripheral_ProcessEvent( uint8 task_id, uint16 events )
 
       if (noConCount >= 2) {
         noConCount = 0;
-#if (DEEP_SLEEP == TRUE)
+#if (NOLINK_SLEEP == TRUE)
         enterDeepSleep();
 #endif
       } else {
@@ -863,6 +863,9 @@ static void enterDeepSleep(void)
  *
  * @brief   read ADC pin 0 to caculate battery's voltage.
  *          The battery's max voltage is 4.2V. The value will be divided by 2 to input to pin 0.
+ *          實際量測4.235V ADC轉換後的數值為21 每間距0.05V下降1
+ *          因此設定小於11(3.735v)時開始閃爍,當電壓低於8(3.585v)休眠
+ *          當電壓低於3.185v ADC數值將會異常變高,因此判定大於21直接休眠
  *
  * @param   none
  *
@@ -871,6 +874,9 @@ static void enterDeepSleep(void)
 static void checkBattery(void)
 {
     uint16 batteryV;
+    uint8 i;
+    static uint16 volStore[10];
+    static uint8 idx = 0;
 
     // to read battery volatge
     batteryV = HalAdcRead(HAL_ADC_CHANNEL_0, HAL_ADC_RESOLUTION_14);
@@ -878,10 +884,25 @@ static void checkBattery(void)
     batteryV = (batteryV * 33) >> 11;
     // uart_printf("Convert BATTERY LV:%x\n", batteryV);
     SimpleProfile_SetParameter( SIMPLEPROFILE_CHAR1, sizeof ( uint8 ), &batteryV );
-    // the battery max voltage is 4.2v and divided by 2 is 2.1v
-    // so if the voltage less than 1.6v flash led
-    if (batteryV < 16) {
+
+    if (batteryV < 11) {
       HalLedSet(HAL_LED_2, HAL_LED_MODE_BLINK);
+    }
+
+	// 十次的平均值小於8或大於21才會真的進入sleep
+    volStore[idx] = batteryV;
+    idx = (idx + 1) % 10;
+
+    if (idx == 0) {
+        batteryV = 0;
+        for (i = 0; i < 10; i++) {
+            batteryV += volStore[i];
+        }
+        batteryV /= 10;
+
+        if (batteryV >= 21 || batteryV < 8) {
+            enterDeepSleep();
+        }
     }
 }
 
