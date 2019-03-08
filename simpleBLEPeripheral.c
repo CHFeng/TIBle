@@ -134,7 +134,6 @@
   #define ADV_IN_CONN_WAIT                    500 // delay 500 ms
 #endif
 
-#define NOLINK_SLEEP	FALSE
 /*********************************************************************
  * TYPEDEFS
  */
